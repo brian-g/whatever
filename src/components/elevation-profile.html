@@ -1,0 +1,76 @@
+<div class="chart">
+  <div class="chart__head">
+    <div>
+      <h2 class="panel__title">${activeMetric.label} over distance</h2>
+      <p class="panel__subtitle" if.bind="plot">
+        ${activeMetric.label} in ${plot.unit}, distance in ${plot.xUnit}
+      </p>
+    </div>
+    <div class="segmented" role="group" aria-label="Chart metric">
+      <button type="button" repeat.for="option of availableMetrics"
+              class="segmented__option ${option.id === metric ? 'is-selected' : ''}"
+              aria-pressed.attr="option.id === metric"
+              click.trigger="selectMetric(option.id)">${option.label}</button>
+    </div>
+  </div>
+
+  <!--
+    Every SVG attribute here is written with .attr, never .bind or interpolation. Aurelia
+    routes both of those through the DOM property, and SVG properties such as viewBox, width,
+    x1 and cx are read-only (SVGAnimatedLength / SVGAnimatedRect), so assigning them throws;
+    fill and stroke are CSS properties rather than element properties. The element is sized by
+    CSS and the viewBox matches it, keeping one CSS pixel equal to one user unit.
+  -->
+  <div class="chart__canvas" ref="chartElement"
+       pointermove.trigger="onPointerMove($event)"
+       pointerleave.trigger="onPointerLeave()">
+
+    <svg if.bind="plot" class="chart__svg" viewBox.attr="plot.viewBox" role="img"
+         aria-label.attr="chartLabel">
+
+      <g class="chart__grid">
+        <line repeat.for="tick of plot.yTicks" x1.attr="plot.left" x2.attr="plot.right"
+              y1.attr="tick.y" y2.attr="tick.y" />
+      </g>
+
+      <path class="chart__area" d.attr="plot.area" fill.attr="plot.metric.series" />
+      <path class="chart__line" d.attr="plot.line" stroke.attr="plot.metric.series" />
+
+      <line class="chart__axis" x1.attr="plot.left" x2.attr="plot.right"
+            y1.attr="plot.baseline" y2.attr="plot.baseline" />
+
+      <g class="chart__ticks">
+        <text repeat.for="tick of plot.yTicks" x.attr="plot.left - 8" y.attr="tick.y + 4"
+              text-anchor="end">${tick.text}</text>
+        <text repeat.for="tick of plot.xTicks" x.attr="tick.x" y.attr="plot.baseline + 20"
+              text-anchor="middle">${tick.text}</text>
+      </g>
+
+      <!-- one direct label, on the extreme; the axis and tooltip carry the rest -->
+      <g class="chart__peak">
+        <circle cx.attr="plot.peak.x" cy.attr="plot.peak.y" r="4.5"
+                fill.attr="plot.metric.series" />
+        <text x.attr="plot.peak.x"
+              y.attr="plot.peak.below ? plot.peak.y + 20 : plot.peak.y - 12"
+              text-anchor="middle">${plot.peak.text}</text>
+      </g>
+
+      <g if.bind="cursor" class="chart__cursor">
+        <line x1.attr="cursor.x" x2.attr="cursor.x" y1.attr="plot.top"
+              y2.attr="plot.baseline" />
+        <circle cx.attr="cursor.x" cy.attr="cursor.y" r="4.5"
+                fill.attr="plot.metric.series" />
+      </g>
+    </svg>
+
+    <div if.bind="cursor" class="chart__tooltip ${cursor.flip ? 'chart__tooltip--flip' : ''}"
+         style="left: ${cursor.x}px; top: ${cursor.y}px">
+      <span class="chart__tooltip-value">${cursor.value}</span>
+      <span class="chart__tooltip-meta">at ${cursor.distance}</span>
+    </div>
+
+    <p if.bind="!hasMetricData" class="chart__empty">
+      No ${activeMetric.label.toLowerCase()} data in this file.
+    </p>
+  </div>
+</div>

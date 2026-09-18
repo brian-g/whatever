@@ -1,0 +1,30 @@
+<div class="drop-zone ${dragging ? 'drop-zone--active' : ''} ${compact ? 'drop-zone--compact' : ''}"
+     dragenter.trigger="onDragEnter($event)"
+     dragover.trigger="onDragOver($event)"
+     dragleave.trigger="onDragLeave()"
+     drop.trigger="onDrop($event)">
+
+  <svg class="drop-zone__icon" viewBox="0 0 24 24" aria-hidden="true" if.bind="!compact">
+    <path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" />
+  </svg>
+
+  <p class="drop-zone__title" if.bind="!compact">Drop a GPX file here</p>
+
+  <div class="drop-zone__actions">
+    <label class="button button--primary">
+      <input type="file" accept=".gpx,application/gpx+xml,application/xml"
+             change.trigger="onPick($event)" disabled.bind="busy">
+      ${compact ? 'Open another file' : 'Choose a file'}
+    </label>
+    <button type="button" class="button" click.trigger="loadSample()" disabled.bind="busy">
+      Load sample ride
+    </button>
+  </div>
+
+  <p class="drop-zone__hint" if.bind="!compact">
+    Nothing is uploaded &mdash; the file is parsed in your browser.
+  </p>
+</div>

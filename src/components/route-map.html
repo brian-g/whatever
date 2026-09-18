@@ -1,0 +1,43 @@
+<div class="route-map">
+  <div class="panel__head">
+    <div>
+      <h2 class="panel__title">Route</h2>
+      <p class="panel__subtitle">Apple Maps via MapKit JS</p>
+    </div>
+    <div class="segmented" role="group" aria-label="Map type" if.bind="!error">
+      <button type="button" repeat.for="option of mapTypes"
+              class="segmented__option ${option.id === mapType ? 'is-selected' : ''}"
+              aria-pressed.attr="option.id === mapType"
+              click.trigger="selectMapType(option.id)">${option.label}</button>
+    </div>
+  </div>
+
+  <div class="route-map__canvas">
+    <div class="route-map__surface ${error ? 'is-hidden' : ''}" ref="mapElement"></div>
+
+    <p if.bind="loading" class="route-map__status">Loading Apple Maps&hellip;</p>
+
+    <div if.bind="error" class="route-map__status route-map__status--error">
+      <svg class="route-map__status-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 3 2 20h20L12 3Z" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linejoin="round" />
+        <path d="M12 9v5m0 3v.01" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" />
+      </svg>
+      <p class="route-map__error">${error}</p>
+      <pre class="route-map__help">${errorDetail}</pre>
+    </div>
+  </div>
+
+  <ul class="legend" if.bind="!error && !loading">
+    <li class="legend__item">
+      <span class="legend__line" aria-hidden="true"></span>Route
+    </li>
+    <li class="legend__item">
+      <span class="legend__pin legend__pin--start" aria-hidden="true">S</span>Start
+    </li>
+    <li class="legend__item">
+      <span class="legend__pin legend__pin--finish" aria-hidden="true">F</span>Finish
+    </li>
+  </ul>
+</div>

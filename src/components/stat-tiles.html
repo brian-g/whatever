@@ -1,0 +1,15 @@
+<div class="tiles">
+  <div class="hero" if.bind="hero">
+    <p class="tile__label">Distance</p>
+    <p class="hero__value">${hero.value}</p>
+    <p class="tile__sub" if.bind="hero.sub">${hero.sub}</p>
+  </div>
+
+  <dl class="tiles__grid">
+    <div class="tile" repeat.for="tile of tiles">
+      <dt class="tile__label">${tile.label}</dt>
+      <dd class="tile__value">${tile.value}</dd>
+      <dd class="tile__sub" if.bind="tile.sub">${tile.sub}</dd>
+    </div>
+  </dl>
+</div>

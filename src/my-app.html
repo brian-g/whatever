@@ -1,0 +1,75 @@
+<div class="app">
+  <header class="app__header">
+    <div class="app__brand">
+      <svg class="app__logo" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 17.5 8 7l4 6.5L15 9l6 8.5H3Z" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+      </svg>
+      <div>
+        <h1 class="app__title">GPX Statistics</h1>
+        <p class="app__tagline">Aurelia 2 &middot; Apple MapKit JS</p>
+      </div>
+    </div>
+
+    <div class="app__actions">
+      <div class="segmented" role="group" aria-label="Unit system">
+        <button type="button" repeat.for="option of unitOptions"
+                class="segmented__option ${option.id === units ? 'is-selected' : ''}"
+                aria-pressed.attr="option.id === units"
+                click.trigger="setUnits(option.id)">${option.label}</button>
+      </div>
+      <gpx-drop-zone if.bind="track" compact.bind="true"
+                     file-loaded.bind="onFileLoaded"></gpx-drop-zone>
+    </div>
+  </header>
+
+  <p class="banner banner--error" if.bind="error" role="alert">
+    <strong>Could not read that file.</strong> ${error}
+  </p>
+
+  <section class="intro" if.bind="!track">
+    <h2 class="intro__heading">See what is inside a GPX file</h2>
+    <p class="intro__lede">
+      Load a recorded ride, run or hike to get distance, moving time, climbing, speed and
+      per-split breakdowns, with the route drawn on Apple Maps.
+    </p>
+    <gpx-drop-zone file-loaded.bind="onFileLoaded"></gpx-drop-zone>
+  </section>
+
+  <main class="dashboard" if.bind="track">
+    <h2 class="dashboard__title">${title}</h2>
+
+    <section class="panel panel--map">
+      <route-map track.bind="track" stats.bind="stats"
+                 hover-index.bind="hoverIndex"></route-map>
+    </section>
+
+    <section class="panel panel--summary">
+      <stat-tiles stats.bind="stats" units.bind="units"></stat-tiles>
+    </section>
+
+    <section class="panel panel--chart">
+      <elevation-profile stats.bind="stats" units.bind="units"
+                         hover-index.two-way="hoverIndex"></elevation-profile>
+    </section>
+
+    <section class="panel panel--splits">
+      <splits-table points.bind="track.points" stats.bind="stats"
+                    units.bind="units"></splits-table>
+    </section>
+
+    <section class="panel panel--meta">
+      <h2 class="panel__title">File details</h2>
+      <dl class="meta">
+        <div class="meta__row" repeat.for="row of metadata">
+          <dt class="meta__label">${row.label}</dt>
+          <dd class="meta__value">${row.value}</dd>
+        </div>
+      </dl>
+    </section>
+  </main>
+
+  <footer class="app__footer">
+    Parsed entirely in the browser &mdash; no file leaves this machine.
+  </footer>
+</div>
