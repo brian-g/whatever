@@ -361,6 +361,10 @@ body {
   grid-column: span 7;
 }
 
+.panel--passes {
+  grid-column: span 7;
+}
+
 .panel--meta {
   grid-column: span 5;
 }
@@ -390,6 +394,7 @@ body {
   .panel--map,
   .panel--summary,
   .panel--splits,
+  .panel--passes,
   .panel--meta {
     grid-column: span 12;
   }
@@ -661,6 +666,10 @@ body {
 
 .legend__pin--finish {
   background: var(--series-2);
+}
+
+.legend__pin--radar {
+  background: var(--danger);
 }
 
 /* ---------- splits ---------- */

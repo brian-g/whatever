@@ -1,0 +1,23 @@
+<div class="pass-events">
+  <h2 class="panel__title">Radar passes</h2>
+  <p class="panel__subtitle">Vehicle and rider speed at each recorded pass</p>
+
+  <div class="splits__scroll">
+    <table class="splits__table">
+      <thead>
+        <tr>
+          <th scope="col">Time</th>
+          <th scope="col">Vehicle speed</th>
+          <th scope="col">Rider speed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr repeat.for="row of rows">
+          <th scope="row">${row.time}</th>
+          <td>${row.vehicleSpeed}</td>
+          <td>${row.riderSpeed}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

@@ -22,6 +22,35 @@ const EXTENSION_FIELDS = {
   watts: 'power',
 };
 
+const RADAR_FIELD_NAMES = {
+  radar: 'signal',
+  radaralert: 'alert',
+  radaralerts: 'alert',
+  radarthreatcount: 'threatCount',
+  threatcount: 'threatCount',
+  radarthreatdistance: 'distance',
+  threatdistance: 'distance',
+  radarthreatlevel: 'level',
+  threatlevel: 'level',
+  radarthreattype: 'type',
+  threattype: 'type',
+  radarthreatspeed: 'vehicleSpeed',
+  threatspeed: 'vehicleSpeed',
+  radarthreatavgapproachspped: 'vehicleSpeed',
+  radarthreatavgapproachspeed: 'vehicleSpeed',
+  radarvehiclespeed: 'vehicleSpeed',
+  vehiclespeed: 'vehicleSpeed',
+  riderspeed: 'riderSpeed',
+  riderspeedkph: 'riderSpeedKph',
+  estimatedpassspeedkph: 'vehicleSpeedKph',
+  radarapproachspeed: 'approachSpeed',
+  threatapproachspeed: 'approachSpeed',
+};
+
+const PASS_NAMES = new Set([
+  'pass', 'passed', 'passevent', 'radarpass', 'vehiclepass', 'overtake', 'overtaking',
+]);
+
 function childrenNamed(el, localName) {
   return Array.from(el.children).filter((c) => c.localName === localName);
 }
@@ -49,13 +78,28 @@ function parseTime(text) {
   return Number.isNaN(ms) ? null : ms;
 }
 
+function kphToMs(value) {
+  return Number.isFinite(value) ? value / 3.6 : null;
+}
+
 /** Walks an <extensions> subtree at any depth, filling the first value found per field. */
 function readExtensions(el, point) {
   for (const child of el.children) {
-    const field = EXTENSION_FIELDS[child.localName.toLowerCase()];
+    const name = child.localName.toLowerCase();
+    const field = EXTENSION_FIELDS[name];
     if (field && point[field] === null) {
       const value = Number.parseFloat(child.textContent);
       if (Number.isFinite(value)) point[field] = value;
+    }
+    const radarField = RADAR_FIELD_NAMES[name];
+    if (radarField) {
+      const numericValue = Number.parseFloat(child.textContent);
+      point.radar[radarField] = Number.isFinite(numericValue)
+        ? numericValue
+        : child.textContent.trim() || true;
+    }
+    if (PASS_NAMES.has(name) || name.includes('pass') || name.includes('overtak')) {
+      point.radar.pass = true;
     }
     if (child.children.length > 0) readExtensions(child, point);
   }
@@ -75,6 +119,20 @@ function readPoint(el) {
     cad: null,
     temp: null,
     power: null,
+    radar: {
+      pass: false,
+      signal: null,
+      alert: null,
+      threatCount: null,
+      distance: null,
+      level: null,
+      type: null,
+      approachSpeed: null,
+      vehicleSpeed: null,
+      riderSpeed: null,
+      riderSpeedKph: null,
+      vehicleSpeedKph: null,
+    },
   };
 
   const extensions = childNamed(el, 'extensions');
@@ -93,7 +151,51 @@ function readWaypoint(el) {
     name: childText(el, 'name'),
     description: childText(el, 'desc') ?? childText(el, 'cmt'),
     symbol: childText(el, 'sym'),
+    type: childText(el, 'type'),
+    radar: point.radar,
   };
+}
+
+function derivePassEvents(points) {
+  let previousThreatCount = null;
+  let previousPass = false;
+  return points.flatMap((point, index) => {
+    const radar = point.radar;
+    const countRose = radar.threatCount !== null
+      && previousThreatCount !== null
+      && radar.threatCount > previousThreatCount;
+    const explicitPassStarted = radar.pass && !previousPass;
+    previousThreatCount = radar.threatCount ?? previousThreatCount;
+    previousPass = radar.pass;
+    if (!explicitPassStarted && !countRose) return [];
+    return [{
+      index,
+      point,
+      distance: radar.distance,
+      level: radar.level,
+      type: radar.type,
+      vehicleSpeed: radar.vehicleSpeed ?? radar.approachSpeed,
+      riderSpeed: radar.riderSpeed ?? kphToMs(radar.riderSpeedKph),
+    }];
+  });
+}
+
+function waypointPassEvents(waypoints) {
+  return waypoints.flatMap((waypoint) => {
+    const radar = waypoint.radar;
+    if (!radar?.pass && waypoint.type?.toLowerCase() !== 'vehiclepass') return [];
+    return [{
+      index: null,
+      point: waypoint,
+      distance: radar.distance,
+      level: radar.level,
+      type: waypoint.type ?? radar.type,
+      vehicleSpeed: radar.vehicleSpeed
+        ?? kphToMs(radar.vehicleSpeedKph)
+        ?? radar.approachSpeed,
+      riderSpeed: radar.riderSpeed ?? kphToMs(radar.riderSpeedKph),
+    }];
+  });
 }
 
 /**
@@ -148,7 +250,12 @@ export function parseGpx(xmlText) {
     }
   }
 
+  for (const track of tracks) track.passEvents = derivePassEvents(track.points);
+
   const points = tracks.flatMap((track) => track.points);
+  const waypoints = childrenNamed(root, 'wpt').map(readWaypoint).filter(Boolean);
+  const passEvents = tracks.flatMap((track) => track.passEvents)
+    .concat(waypointPassEvents(waypoints));
   if (points.length < 2) {
     throw new Error('That GPX file has no track points to analyse.');
   }
@@ -161,7 +268,8 @@ export function parseGpx(xmlText) {
     creator: root.getAttribute('creator'),
     time: metadata ? parseTime(childText(metadata, 'time')) : null,
     tracks,
-    waypoints: childrenNamed(root, 'wpt').map(readWaypoint).filter(Boolean),
+    waypoints,
+    passEvents,
     points,
   };
 }

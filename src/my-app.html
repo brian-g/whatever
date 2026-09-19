@@ -58,6 +58,10 @@
                     units.bind="units"></splits-table>
     </section>
 
+    <section class="panel panel--passes" if.bind="hasPassEvents">
+      <pass-events track.bind="track" stats.bind="stats" units.bind="units"></pass-events>
+    </section>
+
     <section class="panel panel--meta">
       <h2 class="panel__title">File details</h2>
       <dl class="meta">

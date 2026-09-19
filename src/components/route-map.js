@@ -25,6 +25,7 @@ const ROUTE_COLOR = '#2a78d6';
 const START_COLOR = '#1baf7a';
 const FINISH_COLOR = '#eb6834';
 const WAYPOINT_COLOR = '#52514e';
+const RADAR_PASS_COLOR = '#d03b3b';
 
 /**
  * The route is drawn twice: a translucent white casing underneath, then the colour on top.
@@ -49,6 +50,10 @@ export class RouteMap {
   #annotations = [];
   #cursor = null;
   #destroyed = false;
+
+  get hasRadarPasses() {
+    return (this.track?.passEvents?.length ?? 0) > 0;
+  }
 
   async attached() {
     if (!hasMapKitToken()) {
@@ -209,13 +214,32 @@ export class RouteMap {
       }),
     ];
 
+    const passEvents = track.passEvents ?? [];
+    const passPoints = new Set(passEvents.map((event) => event.point));
+
     for (const waypoint of track.waypoints ?? []) {
+      if (passPoints.has(waypoint)) continue;
       markers.push(new mapkit.MarkerAnnotation(
         new mapkit.Coordinate(waypoint.lat, waypoint.lon),
         {
           color: WAYPOINT_COLOR,
           title: waypoint.name ?? 'Waypoint',
           subtitle: waypoint.description ?? undefined,
+        },
+      ));
+    }
+
+    for (const event of passEvents) {
+      const details = [event.type, event.distance !== null ? `${event.distance} m` : null]
+        .filter(Boolean)
+        .join(' · ');
+      markers.push(new mapkit.MarkerAnnotation(
+        new mapkit.Coordinate(event.point.lat, event.point.lon),
+        {
+          color: RADAR_PASS_COLOR,
+          glyphText: 'P',
+          title: 'Radar pass',
+          subtitle: details || 'Vehicle passed',
         },
       ));
     }

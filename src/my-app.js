@@ -73,6 +73,10 @@ export class MyApp {
     return this.track?.name ?? this.fileName ?? 'Track';
   }
 
+  get hasPassEvents() {
+    return (this.track?.passEvents?.length ?? 0) > 0;
+  }
+
   get metadata() {
     const track = this.track;
     const stats = this.stats;
