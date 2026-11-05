@@ -34,3 +34,7 @@ node_modules
 /dist
 /.nyc_output
 /coverage
+
+# Local env (holds the MapKit JS token)
+.env.local
+.env.*.local

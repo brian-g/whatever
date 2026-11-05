@@ -102,13 +102,15 @@ actively misleading on real GPS data. Each threshold is documented at its consta
 
 ### Not verified
 
-The map itself has never rendered a basemap here: MapKit JS needs a signed ES256 token
-from an Apple Developer account, which cannot be produced in this environment, and the
-chosen behaviour is "token required, no fallback". The polyline, markers, framing,
-map-type switching and the hover dot are written against API shapes confirmed field by
-field from Apple's live documentation and the installed `@types/apple-mapkit` v6 — but
-they are unexercised code until a token is supplied. The `hoverIndex` handoff from chart
-to map is verified on the chart side only.
+The map was first exercised on 2026-11-05 with a real token, which is origin-locked to
+`whatever-1x5.pages.dev` (Apple returns 401 for `localhost`). It was verified in headless
+Firefox by resolving that host to the local dev server (`network.dns.localDomains`, HSTS
+preload off, Vite `allowedHosts`) and driving the page over Marionette: MapKit 6.1.197
+loads, the basemap, route polyline + casing and markers render, and framing fits the route.
+That run caught a bug: on a loop, Start, Finish and the trailhead waypoint shared one
+coordinate and the waypoint, added last, covered both. Fixed in `route-map.js` (combined
+"Start & finish" marker within 50 m, ends added last, waypoints at `High` priority). The
+separate Start/Finish branch for a non-loop route was not driven; the sample is a loop.
 
 Also unexercised: loading a second file over an already-rendered dashboard. It runs the
 same `#sync()` path as the initial load, and the units-change test confirms the

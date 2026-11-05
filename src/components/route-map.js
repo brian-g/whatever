@@ -1,4 +1,5 @@
 import { hasMapKitToken, loadMapKit, TOKEN_ENV_VAR, TOKEN_HELP } from '../services/mapkit.js';
+import { haversine } from '../services/track-stats.js';
 import { formatDateTime, formatDistance } from '../services/units.js';
 
 /**
@@ -33,6 +34,9 @@ const RADAR_PASS_COLOR = '#d03b3b';
  * keeps one line legible over every map type.
  */
 const CASING_COLOR = '#ffffff';
+
+/** Start and finish closer than this are one place: a loop gets a single combined marker. */
+const LOOP_CLOSE_METERS = 50;
 
 export class RouteMap {
   static bindables = ['track', 'stats', 'hoverIndex'];
@@ -199,21 +203,26 @@ export class RouteMap {
     const last = lastSegment[lastSegment.length - 1];
     const stats = this.stats;
 
-    const markers = [
-      new mapkit.MarkerAnnotation(new mapkit.Coordinate(first.lat, first.lon), {
+    const startSubtitle = stats?.startTime ? formatDateTime(stats.startTime) : undefined;
+    const finishSubtitle = stats ? formatDistance(stats.distance, 'metric', 2) : undefined;
+    // On a loop the two markers share one spot and only the later one would be visible.
+    const ends = haversine(first, last) <= LOOP_CLOSE_METERS
+      ? [new mapkit.MarkerAnnotation(new mapkit.Coordinate(first.lat, first.lon), {
         color: START_COLOR,
         glyphText: 'S',
-        title: 'Start',
-        subtitle: stats?.startTime ? formatDateTime(stats.startTime) : undefined,
-      }),
-      new mapkit.MarkerAnnotation(new mapkit.Coordinate(last.lat, last.lon), {
-        color: FINISH_COLOR,
-        glyphText: 'F',
-        title: 'Finish',
-        subtitle: stats ? formatDistance(stats.distance, 'metric', 2) : undefined,
-      }),
-    ];
+        title: 'Start & finish',
+        subtitle: [startSubtitle, finishSubtitle].filter(Boolean).join(' · ') || undefined,
+      })]
+      : [
+        new mapkit.MarkerAnnotation(new mapkit.Coordinate(first.lat, first.lon), {
+          color: START_COLOR, glyphText: 'S', title: 'Start', subtitle: startSubtitle,
+        }),
+        new mapkit.MarkerAnnotation(new mapkit.Coordinate(last.lat, last.lon), {
+          color: FINISH_COLOR, glyphText: 'F', title: 'Finish', subtitle: finishSubtitle,
+        }),
+      ];
 
+    const markers = [];
     const passEvents = track.passEvents ?? [];
     const passPoints = new Set(passEvents.map((event) => event.point));
 
@@ -225,6 +234,9 @@ export class RouteMap {
           color: WAYPOINT_COLOR,
           title: waypoint.name ?? 'Waypoint',
           subtitle: waypoint.description ?? undefined,
+          // Below the default "required": a waypoint on top of the start or finish (often the
+          // trailhead itself) yields to it instead of printing its label over theirs.
+          displayPriority: mapkit.AnnotationDisplayPriority?.High ?? 750,
         },
       ));
     }
@@ -243,6 +255,10 @@ export class RouteMap {
         },
       ));
     }
+
+    // MapKit stacks annotations in insertion order, so the start and finish go last: a
+    // waypoint at the trailhead must not cover the marker that says where the ride began.
+    markers.push(...ends);
 
     this.#map.addAnnotations(markers);
     this.#annotations.push(...markers);
